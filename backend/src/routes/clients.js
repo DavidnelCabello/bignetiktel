@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const db = require('../database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const { log } = require('../logger');
 
 const router = Router();
@@ -8,7 +8,7 @@ router.use(authenticate);
 
 router.get('/', (req, res) => res.json(db.prepare('SELECT *, COALESCE(first_name, name) as first_name, COALESCE(last_name, \'\') as last_name FROM clients ORDER BY first_name, last_name').all()));
 
-router.post('/', (req, res) => {
+router.post('/', requireAdmin, (req, res) => {
   const { first_name, last_name, name, identity_card, address, phone, email, notes, id_document_type, province, city } = req.body;
   const fn = first_name || name || '';
   const ln = last_name || '';
@@ -22,7 +22,7 @@ router.post('/', (req, res) => {
   } catch (e) { if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'CI ya existe' }); throw e; }
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', requireAdmin, (req, res) => {
   const { first_name, last_name, name, identity_card, address, phone, email, notes, active, id_document_type, province, city } = req.body;
   const fn = first_name || name || '';
   const ln = last_name || '';
@@ -34,7 +34,7 @@ router.put('/:id', (req, res) => {
   res.json({ message: 'Actualizado' });
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requireAdmin, (req, res) => {
   const used = db.prepare('SELECT COUNT(*) as c FROM sales WHERE client_id = ?').get(req.params.id);
   if (used.c > 0) return res.status(400).json({ error: 'El cliente tiene ventas' });
   db.prepare('DELETE FROM clients WHERE id = ?').run(req.params.id);

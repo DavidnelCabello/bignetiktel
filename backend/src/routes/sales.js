@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const db = require('../database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const { log } = require('../logger');
 const { sendSaleConfirmation, sendPaymentReceipt, sendLatePaymentReminder } = require('../mailer');
 
@@ -75,7 +75,7 @@ router.get('/:id', (req, res) => {
   res.json({ ...sale, items, payments });
 });
 
-router.post('/', (req, res) => {
+router.post('/', requireAdmin, (req, res) => {
   const { client_id, items: saleItems, notes, payment_plan, interest_rate, term_months } = req.body;
   if (!client_id || !saleItems || saleItems.length === 0) return res.status(400).json({ error: 'Cliente e items requeridos' });
 
@@ -122,7 +122,7 @@ router.post('/', (req, res) => {
   catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post('/:id/payment', (req, res) => {
+router.post('/:id/payment', requireAdmin, (req, res) => {
   const { amount, payment_method, notes } = req.body;
   if (!amount || amount <= 0) return res.status(400).json({ error: 'Monto inválido' });
 
@@ -175,7 +175,7 @@ router.post('/:id/payment', (req, res) => {
   catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post('/:id/notify', (req, res) => {
+router.post('/:id/notify', requireAdmin, (req, res) => {
   const sale = db.prepare('SELECT s.*, c.name as client_name, c.email FROM sales s JOIN clients c ON s.client_id = c.id WHERE s.id = ?').get(req.params.id);
   if (!sale) return res.status(404).json({ error: 'No encontrada' });
   if (!sale.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
@@ -188,7 +188,7 @@ router.post('/:id/notify', (req, res) => {
     });
 });
 
-router.post('/:id/cancel', (req, res) => {
+router.post('/:id/cancel', requireAdmin, (req, res) => {
   const cancel = db.transaction(() => {
     const sale = db.prepare('SELECT * FROM sales WHERE id = ?').get(req.params.id);
     if (!sale) throw new Error('No encontrada');
