@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 const db = require('../database');
-const SECRET = process.env.JWT_SECRET || 'BigNetiK2024SecretKey';
+
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  console.error('FATAL: La variable de entorno JWT_SECRET no está configurada.');
+  process.exit(1);
+}
 
 function authenticate(req, res, next) {
   const header = req.headers.authorization;
@@ -19,4 +24,11 @@ function checkVersion(req, res, next) {
   next();
 }
 
-module.exports = { authenticate, generateToken, checkVersion };
+function requireAdmin(req, res, next) {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'No autorizado' });
+  }
+  next();
+}
+
+module.exports = { authenticate, generateToken, checkVersion, requireAdmin, SECRET };

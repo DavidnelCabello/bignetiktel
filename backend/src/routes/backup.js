@@ -3,19 +3,18 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, SECRET } = require('../middleware/auth');
 const { log } = require('../logger');
 
 const router = Router();
-const SECRET = process.env.JWT_SECRET || 'BigNetiK2024SecretKey';
 
 const DB_PATH = path.join(__dirname, '..', '..', 'bignetiktel.db');
 const BACKUPS_DIR = path.join(__dirname, '..', '..', 'backups');
 
-// Download route uses query param auth so window.open works — must be before router.use(authenticate)
 router.get('/download', (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1] || req.query.auth;
-  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return res.status(401).json({ error: 'Token requerido' });
+  const token = header.split(' ')[1];
   try {
     const user = jwt.verify(token, SECRET);
     if (user.role !== 'super_admin') return res.status(403).json({ error: 'Solo super admin' });

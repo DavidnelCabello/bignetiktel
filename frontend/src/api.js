@@ -73,7 +73,18 @@ export const api = {
   getSettings: () => req('GET', '/settings'),
   saveSettings: (d) => req('PUT', '/settings', d),
 
-  downloadBackup: () => { const t = localStorage.getItem('token'); window.open(`/api/backup/download?auth=${t}`, '_blank') },
+  downloadBackup: async () => {
+    const t = token();
+    const res = await fetch(`${API}/backup/download`, { headers: { Authorization: `Bearer ${t}` } });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Error al descargar'); }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bignetiktel-backup-${new Date().toISOString().slice(0, 10)}.db`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   createBackup: () => req('POST', '/backup/create'),
   restoreBackup: (backupFile) => req('POST', '/backup/restore', { backupFile }),
   deleteBackup: (name) => req('DELETE', `/backup/${encodeURIComponent(name)}`),
