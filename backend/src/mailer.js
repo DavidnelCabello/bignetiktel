@@ -34,7 +34,7 @@ async function sendMail(to, subject, html) {
 
 async function sendSaleConfirmation(clientEmail, clientName, saleData, items, total) {
   if (!clientEmail) return false;
-  const itemsHtml = items.map(i => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${i.model_name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center">${i.quantity}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right">$${Number(i.price).toFixed(2)}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right">$${(Number(i.price) * i.quantity).toFixed(2)}</td></tr>`).join('');
+  const itemsHtml = items.map(i => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${i.model_name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center">${i.quantity}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right">$${Number(i.unit_price).toFixed(2)}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right">$${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('');
   return sendMail(clientEmail,
     `Confirmación de Venta #${saleData.id} - ${companyName()}`,
     `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">

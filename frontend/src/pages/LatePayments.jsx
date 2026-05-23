@@ -73,7 +73,7 @@ export default function LatePayments() {
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   <span className="inline-block bg-red-50 text-red-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                    {sale.term_months - Math.floor(sale.paid_amount / sale.installment_amount)} cuotas restantes
+                    {sale.installment_amount > 0 ? sale.term_months - Math.floor(sale.paid_amount / sale.installment_amount) : '—'} cuotas restantes
                   </span>
                   <button onClick={e => handleNotify(sale.id, e)} disabled={notifying[sale.id]}
                     className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50">
