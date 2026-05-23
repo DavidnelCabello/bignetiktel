@@ -452,7 +452,7 @@ Badge verificado activado → Puede recibir leads
 - `email` (único)
 - `passwordHash`
 - `role` (COMPANY | PROVIDER | PROFESSIONAL | ADMIN)
-- `status` (PENDING | ACTIVE | SUSPENDED | DELETED)
+- `status` (PENDING | ACTIVE | SUSPENDED | ANONYMIZED)
 - `mfaEnabled` (boolean)
 - `createdAt`, `updatedAt`, `lastLoginAt`
 - `preferredLanguage` (es | en)
@@ -564,7 +564,8 @@ Badge verificado activado → Puede recibir leads
 - `id` (UUID)
 - `companyId` (FK → CompanyProfile)
 - `categoryId` (FK → ServiceCategory)
-- `title`, `description`
+- `title_es`, `title_en`
+- `description_es`, `description_en`
 - `budget` (decimal, opcional)
 - `currency` (USD)
 - `locationId` (FK → Location)
@@ -660,6 +661,19 @@ Badge verificado activado → Puede recibir leads
 
 ---
 
+### LEAD_TRANSACTION (libro mayor de consumo de leads)
+- `id` (UUID)
+- `subscriptionId` (FK → Subscription)
+- `providerId` (FK → ProviderProfile)
+- `quoteId` (FK → Quote, nullable)
+- `type` (DEBIT | CREDIT | REFUND | PURCHASE)
+- `amount` (int — número de leads)
+- `balanceBefore`, `balanceAfter` (int)
+- `reason` (string)
+- `createdAt`
+
+---
+
 ### PAYMENT
 - `id` (UUID)
 - `userId` (FK → User)
@@ -692,7 +706,7 @@ Badge verificado activado → Puede recibir leads
 - `actorId` (FK → User)
 - `action` (string)
 - `entityType`, `entityId`
-- `before` (JSON), `after` (JSON)
+- `changes` (JSON — diff de campos modificados)
 - `ipAddress`, `userAgent`
 - `createdAt`
 
