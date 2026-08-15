@@ -1,9 +1,9 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
-const db = require('../database');
-const { authenticate } = require('../middleware/auth');
-const { MODULE_KEYS } = require('../modules');
-const { log } = require('../logger');
+const db = require('../../database');
+const { authenticate } = require('../../middleware/auth');
+const { MODULE_KEYS } = require('../../modules');
+const { log } = require('../../logger');
 
 const router = Router();
 router.use(authenticate);

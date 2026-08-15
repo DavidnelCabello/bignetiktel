@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { portalApi } from '../api'
+import { portalApi } from '../../api'
 import { LogOut, User, Clock, IdCard, Home, CalendarDays, Camera, Save, KeyRound, ChevronLeft, ChevronRight, Briefcase, Building2, Wallet, Palmtree, LifeBuoy, Plus, Send, X, ArrowLeft, Trash2, PencilRuler } from 'lucide-react'
-import NotificationBell from '../components/NotificationBell'
-import { time12, stamp12 } from '../lib/time'
+import NotificationBell from '../../components/NotificationBell'
+import { time12, stamp12 } from '../../lib/time'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DOW = ['L','M','X','J','V','S','D']

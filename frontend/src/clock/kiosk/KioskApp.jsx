@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { kioskApi } from '../api'
-import { initFace, analyze } from '../lib/face'
+import { kioskApi } from '../../api'
+import { initFace, analyze } from '../face'
 import { ScanFace, Delete, Check, X, Loader2, ArrowLeft, UserCircle, LogOut } from 'lucide-react'
 
 export default function KioskApp() {

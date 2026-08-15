@@ -1,6 +1,6 @@
 const { Router } = require('express');
-const db = require('../database');
-const { authenticate } = require('../middleware/auth');
+const db = require('../../database');
+const { authenticate } = require('../../middleware/auth');
 
 const router = Router();
 router.use(authenticate);

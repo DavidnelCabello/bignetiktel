@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
-import { initFace, analyze, averageEmbedding } from '../lib/face'
+import { initFace, analyze, averageEmbedding } from './face'
 import { X, ScanFace, Check, Loader2 } from 'lucide-react'
 
 const SAMPLES_PER_POSE = 5

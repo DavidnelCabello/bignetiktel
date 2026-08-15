@@ -2,9 +2,9 @@ const { Router } = require('express');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const db = require('../database');
-const { authenticate, SECRET } = require('../middleware/auth');
-const { log } = require('../logger');
+const db = require('../../database');
+const { authenticate, SECRET } = require('../../middleware/auth');
+const { log } = require('../../logger');
 
 const router = Router();
 

@@ -1,10 +1,10 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const db = require('../database');
-const { authenticate, requirePermission } = require('../middleware/auth');
-const { sendWelcomeEmail } = require('../mailer');
-const { log } = require('../logger');
+const db = require('../../database');
+const { authenticate, requirePermission } = require('../../middleware/auth');
+const { sendWelcomeEmail } = require('../../mailer');
+const { log } = require('../../logger');
 
 const router = Router();
 router.use(authenticate, requirePermission('hr'));

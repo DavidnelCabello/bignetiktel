@@ -1,9 +1,9 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
-const db = require('../database');
-const { authenticateEmployee, generateToken } = require('../middleware/auth');
-const { notify } = require('../notifications');
-const { log } = require('../logger');
+const db = require('../../database');
+const { authenticateEmployee, generateToken } = require('../../middleware/auth');
+const { notify } = require('../../notifications');
+const { log } = require('../../logger');
 
 const router = Router();
 

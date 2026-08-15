@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { portalApi } from '../api'
+import { portalApi } from '../../api'
 import PortalLogin from './PortalLogin'
 import PortalHome from './PortalHome'
 import { KeyRound, Eye, EyeOff, Clock } from 'lucide-react'

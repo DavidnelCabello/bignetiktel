@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { UserCog, UserPlus, Edit, Trash2, X, Save, Search, Circle, KeyRound, Copy, ScanFace } from 'lucide-react'
-import EnrollFaceModal from '../components/EnrollFaceModal'
+import EnrollFaceModal from './EnrollFaceModal'
 
 const EMPTY = { employee_code: '', first_name: '', second_name: '', last_name: '', document_type: 'CI', document_number: '', position: '', department_id: '', address: '', birth_date: '', phone: '', email: '', hire_date: '', pay_type: 'hourly', pay_rate: '', currency: 'CUP', active: 1, notes: '' }
 const DOC_TYPES = ['CI', 'Licencia', 'Pasaporte']

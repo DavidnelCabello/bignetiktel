@@ -1,8 +1,8 @@
 const { Router } = require('express');
-const db = require('../database');
-const { authenticate, requireAdmin } = require('../middleware/auth');
-const { log } = require('../logger');
-const { sendSaleConfirmation, sendPaymentReceipt, sendLatePaymentReminder } = require('../mailer');
+const db = require('../../database');
+const { authenticate, requireAdmin } = require('../../middleware/auth');
+const { log } = require('../../logger');
+const { sendSaleConfirmation, sendPaymentReceipt, sendLatePaymentReminder } = require('../../mailer');
 
 const router = Router();
 router.use(authenticate);
