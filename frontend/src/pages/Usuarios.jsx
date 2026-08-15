@@ -1,14 +1,44 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
+import { MODULES } from '../data/modules'
 import { UserPlus, User, Shield, ShieldCheck, Key, Power, PowerOff, Edit, X, Save } from 'lucide-react'
+
+// Permisos por defecto para un usuario "admin" nuevo (operación diaria).
+const DEFAULT_PERMS = ['inventory', 'sales', 'clients', 'payments', 'hr']
+
+// Selector de casillas de permisos por módulo, agrupado por sección.
+function PermissionPicker({ value, onChange, disabled }) {
+  const groups = [...new Set(MODULES.map(m => m.group))]
+  function toggle(key) {
+    onChange(value.includes(key) ? value.filter(k => k !== key) : [...value, key])
+  }
+  if (disabled) return <p className="text-xs text-purple-600 bg-purple-50 px-3 py-2 rounded-lg">El Super Admin tiene acceso total a todos los módulos.</p>
+  return (
+    <div className="space-y-3">
+      {groups.map(g => (
+        <div key={g}>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">{g}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {MODULES.filter(m => m.group === g).map(m => (
+              <label key={m.key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${value.includes(m.key) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                <input type="checkbox" checked={value.includes(m.key)} onChange={() => toggle(m.key)} className="accent-blue-600" />
+                {m.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function Usuarios() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ username: '', password: '', full_name: '', role: 'admin' })
+  const [form, setForm] = useState({ username: '', password: '', full_name: '', role: 'admin', permissions: DEFAULT_PERMS })
   const [editUser, setEditUser] = useState(null)
-  const [editForm, setEditForm] = useState({ full_name: '', email: '', phone: '', role: '', active: 1 })
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', phone: '', role: '', active: 1, permissions: [] })
   const [error, setError] = useState('')
 
   async function load() {
@@ -22,7 +52,7 @@ export default function Usuarios() {
     e.preventDefault(); setError('')
     try {
       await api.createUser(form)
-      setForm({ username: '', password: '', full_name: '', role: 'admin' })
+      setForm({ username: '', password: '', full_name: '', role: 'admin', permissions: DEFAULT_PERMS })
       setShowForm(false)
       await load()
     } catch (e) { setError(e.message) }
@@ -47,7 +77,7 @@ export default function Usuarios() {
 
   function openEdit(u) {
     setEditUser(u)
-    setEditForm({ full_name: u.full_name, email: u.email || '', phone: u.phone || '', role: u.role, active: u.active })
+    setEditForm({ full_name: u.full_name, email: u.email || '', phone: u.phone || '', role: u.role, active: u.active, permissions: Array.isArray(u.permissions) ? u.permissions : [] })
     setError('')
   }
 
@@ -94,6 +124,10 @@ export default function Usuarios() {
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-2">Permisos por módulo</label>
+            <PermissionPicker value={form.permissions} onChange={p => setForm({...form, permissions: p})} disabled={form.role === 'super_admin'} />
+          </div>
           <div className="flex gap-2">
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Crear</button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-300">Cancelar</button>
@@ -139,6 +173,10 @@ export default function Usuarios() {
                     <option value={0}>Inactivo</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-2">Permisos por módulo</label>
+                <PermissionPicker value={editForm.permissions} onChange={p => setEditForm({...editForm, permissions: p})} disabled={editForm.role === 'super_admin'} />
               </div>
               <div className="flex gap-2">
                 <button type="submit" className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"><Save size={16} /> Guardar</button>

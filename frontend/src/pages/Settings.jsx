@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { api } from '../api'
-import { Settings as SettingsIcon, Save, Mail, Server, Lock, Globe, User, Building2, DollarSign, Key, ShieldCheck, Database, DownloadCloud, Upload, RotateCw, HardDrive } from 'lucide-react'
+import { api, kioskApi } from '../api'
+import { Settings as SettingsIcon, Save, Mail, Server, Lock, Globe, User, Building2, DollarSign, Key, ShieldCheck, Database, DownloadCloud, Upload, RotateCw, HardDrive, ScanFace, Wifi, Copy } from 'lucide-react'
 
 const defaults = {
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from_email: '',
@@ -9,6 +9,9 @@ const defaults = {
   usd_cup_rate: '1',
   password_min_length: '4', password_require_uppercase: '0', password_require_numbers: '0', password_expiry_days: '0',
   company_logo: '',
+  welcome_email_enabled: '1', welcome_email_subject: '', welcome_email_body: '',
+  kiosk_lock_enabled: '0', kiosk_allowed_ips: '',
+  face_match_threshold: '0.5', face_antispoof_min: '0.5', face_liveness_min: '0.5',
 }
 
 export default function Settings() {
@@ -16,6 +19,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const [myIp, setMyIp] = useState('')
   const [backups, setBackups] = useState([])
   const [autoBackup, setAutoBackup] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -200,6 +204,60 @@ export default function Settings() {
         </div>
 
         <div className="border-t border-slate-100 pt-5">
+          <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><Mail size={18} className="text-emerald-600" /> Correo de Bienvenida (empleados)</h3>
+          <p className="text-xs text-slate-500 mb-4">Se envía automáticamente al generar el acceso al portal de un empleado (si tiene email y el SMTP está configurado). Incluye sus credenciales.</p>
+          <label className="flex items-center gap-2 cursor-pointer mb-4">
+            <div className={`w-10 h-5 rounded-full transition-colors ${form.welcome_email_enabled === '1' ? 'bg-emerald-500' : 'bg-slate-300'} relative`} onClick={() => set('welcome_email_enabled', form.welcome_email_enabled === '1' ? '0' : '1')}>
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${form.welcome_email_enabled === '1' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
+            <span className="text-sm text-slate-700">Enviar correo de bienvenida automáticamente</span>
+          </label>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Asunto</label>
+              <input value={form.welcome_email_subject} onChange={e => set('welcome_email_subject', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Bienvenido/a a {{company}}" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Cuerpo del mensaje</label>
+              <textarea value={form.welcome_email_body} onChange={e => set('welcome_email_body', e.target.value)} rows={6} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-mono" placeholder={"Hola {{name}},\n\n¡Bienvenido/a al equipo de {{company}}!..."} />
+              <p className="text-xs text-slate-400 mt-1">Variables disponibles: <code>{'{{name}}'}</code> <code>{'{{company}}'}</code> <code>{'{{position}}'}</code> <code>{'{{employee_code}}'}</code>. Las credenciales (ID + contraseña + botón al portal) se añaden automáticamente al final. Deja en blanco para usar la plantilla por defecto.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 pt-5">
+          <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ScanFace size={18} className="text-emerald-600" /> Kiosco de Fichaje Facial</h3>
+          <p className="text-xs text-slate-500 mb-4">El kiosco vive en <span className="font-mono">/kiosco</span>. Bloquéalo por IP para que solo la tablet de la puerta pueda fichar (nadie desde su teléfono).</p>
+          <label className="flex items-center gap-2 cursor-pointer mb-4">
+            <div className={`w-10 h-5 rounded-full transition-colors ${form.kiosk_lock_enabled === '1' ? 'bg-emerald-500' : 'bg-slate-300'} relative`} onClick={() => set('kiosk_lock_enabled', form.kiosk_lock_enabled === '1' ? '0' : '1')}>
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${form.kiosk_lock_enabled === '1' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
+            <span className="text-sm text-slate-700">Bloquear el kiosco por IP</span>
+          </label>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">IPs permitidas (separadas por coma)</label>
+              <input value={form.kiosk_allowed_ips} onChange={e => set('kiosk_allowed_ips', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="192.168.1.50" />
+              <div className="flex items-center gap-2 mt-1.5">
+                <button type="button" onClick={() => kioskApi.whoami().then(d => setMyIp(d.ip)).catch(() => {})} className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-600"><Wifi size={13} /> Ver IP de este dispositivo</button>
+                {myIp && <span className="text-xs text-slate-500">Esta IP: <span className="font-mono font-semibold">{myIp}</span> <button type="button" onClick={() => set('kiosk_allowed_ips', form.kiosk_allowed_ips ? form.kiosk_allowed_ips + ',' + myIp : myIp)} className="text-emerald-600 hover:underline ml-1">añadir</button></span>}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Tip: abre esta página <strong>desde la tablet</strong> y pulsa "Ver IP" para conocer su dirección, luego añádela.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 max-w-md">
+              <div><label className="block text-xs font-medium text-slate-500 mb-1">Umbral de coincidencia</label><input type="number" step="0.05" min="0" max="1" value={form.face_match_threshold} onChange={e => set('face_match_threshold', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" /></div>
+              <div><label className="block text-xs font-medium text-slate-500 mb-1">Anti-spoof mín.</label><input type="number" step="0.05" min="0" max="1" value={form.face_antispoof_min} onChange={e => set('face_antispoof_min', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" /></div>
+              <div><label className="block text-xs font-medium text-slate-500 mb-1">Liveness mín.</label><input type="number" step="0.05" min="0" max="1" value={form.face_liveness_min} onChange={e => set('face_liveness_min', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" /></div>
+            </div>
+            <details className="bg-slate-50 rounded-lg p-3">
+              <summary className="text-sm font-medium text-slate-700 cursor-pointer">Regla Mikrotik (candado de red, opcional)</summary>
+              <p className="text-xs text-slate-500 mt-2 mb-2">Además del candado por IP del sistema, puedes bloquearlo en el router. Aplica esto por SSH en el Mikrotik (sustituye la IP de la tablet y del servidor):</p>
+              <MikrotikRule ips={form.kiosk_allowed_ips} />
+            </details>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 pt-5">
           <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><Database size={18} className="text-cyan-600" /> Copia de Seguridad</h3>
           <p className="text-xs text-slate-500 mb-4">Respaldo completo de toda la base de datos (inventarios, clientes, ventas, logs, usuarios, fotos de perfil).</p>
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -242,6 +300,20 @@ export default function Settings() {
           {saved && <span className="text-sm text-emerald-600 font-medium">✓ Guardado</span>}
         </div>
       </form>
+    </div>
+  )
+}
+
+function MikrotikRule({ ips }) {
+  const tablet = (ips || '').split(',').map(s => s.trim()).filter(Boolean)[0] || '192.168.1.50'
+  const rule = `# Solo la tablet (${tablet}) puede llegar al servidor del kiosco (puerto 3001)
+/ip firewall filter
+add chain=forward action=accept src-address=${tablet} dst-port=3001 protocol=tcp comment="Kiosco: tablet permitida"
+add chain=forward action=drop dst-port=3001 protocol=tcp comment="Kiosco: bloquear a los demas"`
+  return (
+    <div>
+      <pre className="bg-slate-900 text-slate-100 text-xs rounded-lg p-3 overflow-x-auto whitespace-pre">{rule}</pre>
+      <button type="button" onClick={() => navigator.clipboard?.writeText(rule)} className="mt-2 flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-600"><Copy size={13} /> Copiar regla</button>
     </div>
   )
 }

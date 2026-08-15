@@ -24,6 +24,9 @@ router.put('/', checkSuperAdmin, (req, res) => {
     'usd_cup_rate',
     'password_min_length', 'password_require_uppercase', 'password_require_numbers', 'password_expiry_days',
     'company_logo',
+    'welcome_email_enabled', 'welcome_email_subject', 'welcome_email_body',
+    'kiosk_lock_enabled', 'kiosk_allowed_ips',
+    'face_match_threshold', 'face_antispoof_min', 'face_liveness_min',
   ];
   const upsert = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   for (const [key, value] of Object.entries(req.body)) {

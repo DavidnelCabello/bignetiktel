@@ -2,6 +2,7 @@ const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../database');
 const { authenticate, generateToken, checkVersion } = require('../middleware/auth');
+const { MODULE_KEYS } = require('../modules');
 const { log } = require('../logger');
 const nodemailer = require('nodemailer');
 
@@ -23,7 +24,11 @@ function validatePassword(password) {
 }
 
 function userData(user) {
-  return { id: user.id, username: user.username, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone, avatar: user.avatar };
+  // super_admin: acceso total → devolvemos todas las claves de módulo.
+  let permissions;
+  if (user.role === 'super_admin') permissions = MODULE_KEYS;
+  else { try { permissions = JSON.parse(user.permissions || '[]'); } catch { permissions = []; } }
+  return { id: user.id, username: user.username, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone, avatar: user.avatar, permissions };
 }
 
 router.post('/login', (req, res) => {

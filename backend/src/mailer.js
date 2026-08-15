@@ -23,6 +23,8 @@ const companyName = () => db.prepare("SELECT value FROM settings WHERE key = 'co
 const companyPhone = () => db.prepare("SELECT value FROM settings WHERE key = 'company_phone'").get()?.value || '';
 const companyAddress = () => db.prepare("SELECT value FROM settings WHERE key = 'company_address'").get()?.value || '';
 
+const getSetting = (key) => db.prepare("SELECT value FROM settings WHERE key = ?").get(key)?.value;
+
 async function sendMail(to, subject, html) {
   const transporter = getTransporter();
   if (!transporter) return false;
@@ -30,6 +32,47 @@ async function sendMail(to, subject, html) {
     await transporter.sendMail({ from: getFromEmail(), to, subject, html });
     return true;
   } catch (e) { console.error('Mail error:', e.message); return false; }
+}
+
+// Reemplaza {{variables}} en una plantilla de texto.
+function renderTemplate(str, vars) {
+  return String(str || '').replace(/{{\s*(\w+)\s*}}/g, (_, k) => (vars[k] ?? ''));
+}
+
+const DEFAULT_WELCOME_SUBJECT = 'Bienvenido/a a {{company}}';
+const DEFAULT_WELCOME_BODY = `Hola {{name}},
+
+¡Te damos la bienvenida al equipo de {{company}}! 🎉
+
+Tu cuenta del Portal del Empleado ya está lista. Desde ahí podrás ver tus horas trabajadas, tu pago estimado, solicitar vacaciones y comunicarte con Recursos Humanos.
+
+En tu primer inicio de sesión el sistema te pedirá cambiar la contraseña por una tuya.`;
+
+// Correo de bienvenida con las credenciales del portal. Devuelve true si se envió.
+async function sendWelcomeEmail(employee, tempPassword, portalUrl) {
+  if (!employee?.email) return false;
+  if (getSetting('welcome_email_enabled') === '0') return false; // habilitado por defecto
+  const name = `${employee.first_name} ${employee.last_name || ''}`.trim();
+  const vars = {
+    name, company: companyName(), position: employee.position || '',
+    employee_code: employee.employee_code, id: employee.employee_code,
+    password: tempPassword, portal_url: portalUrl || '',
+  };
+  const subject = renderTemplate(getSetting('welcome_email_subject') || DEFAULT_WELCOME_SUBJECT, vars);
+  const bodyText = renderTemplate(getSetting('welcome_email_body') || DEFAULT_WELCOME_BODY, vars);
+  const bodyHtml = bodyText.split('\n').map(l => l.trim() === '' ? '<br>' : `<p style="margin:0 0 10px;color:#374151">${l}</p>`).join('');
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <h2 style="color:#047857">${companyName()}</h2>
+      ${bodyHtml}
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin:18px 0">
+        <p style="margin:0 0 8px;color:#065f46;font-weight:bold">Tus credenciales de acceso</p>
+        <p style="margin:0 0 4px;color:#374151">ID de empleado: <strong>${vars.employee_code}</strong></p>
+        <p style="margin:0 0 4px;color:#374151">Contraseña temporal: <strong>${vars.password}</strong></p>
+        ${portalUrl ? `<p style="margin:8px 0 0"><a href="${portalUrl}" style="background:#059669;color:#fff;text-decoration:none;padding:8px 16px;border-radius:6px;display:inline-block">Entrar al Portal</a></p>` : ''}
+      </div>
+      <p style="color:#6b7280;font-size:12px;margin-top:24px">${companyName()}${companyAddress() ? ' - ' + companyAddress() : ''}${companyPhone() ? ' - Tel: ' + companyPhone() : ''}</p>
+    </div>`;
+  return sendMail(employee.email, subject, html);
 }
 
 async function sendSaleConfirmation(clientEmail, clientName, saleData, items, total) {
@@ -90,4 +133,4 @@ async function sendLatePaymentReminder(clientEmail, clientName, saleId, daysLate
   );
 }
 
-module.exports = { sendMail, sendSaleConfirmation, sendPaymentReceipt, sendLatePaymentReminder };
+module.exports = { sendMail, sendWelcomeEmail, sendSaleConfirmation, sendPaymentReceipt, sendLatePaymentReminder };

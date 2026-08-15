@@ -128,6 +128,11 @@ try { db.prepare("ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DE
 try { db.prepare("ALTER TABLE users ADD COLUMN email TEXT").run() } catch (_) {}
 try { db.prepare("ALTER TABLE users ADD COLUMN phone TEXT").run() } catch (_) {}
 try { db.prepare("ALTER TABLE users ADD COLUMN avatar TEXT").run() } catch (_) {}
+// RBAC: permisos por módulo (JSON array de claves). super_admin ignora esto (acceso total).
+try { db.prepare("ALTER TABLE users ADD COLUMN permissions TEXT").run() } catch (_) {}
+// Grandfathering: los 'admin' existentes conservan acceso a la operación diaria.
+db.prepare("UPDATE users SET permissions = ? WHERE role = 'admin' AND permissions IS NULL")
+  .run(JSON.stringify(['inventory', 'sales', 'clients', 'payments', 'hr']));
 db.exec(`
   CREATE TABLE IF NOT EXISTS activity_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,6 +149,139 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT
   );
+
+  -- ===== Módulo Reloj / RRHH =====
+  CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_code TEXT NOT NULL UNIQUE,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    position TEXT,
+    department TEXT,
+    phone TEXT,
+    email TEXT,
+    hire_date TEXT,
+    pay_type TEXT NOT NULL DEFAULT 'hourly' CHECK(pay_type IN ('hourly', 'monthly')),
+    pay_rate REAL NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT 'CUP' CHECK(currency IN ('USD', 'CUP')),
+    photo TEXT,
+    face_descriptor TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  );
+
+  CREATE TABLE IF NOT EXISTS time_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    check_in TEXT NOT NULL,
+    check_out TEXT,
+    hours REAL,
+    method TEXT NOT NULL DEFAULT 'manual' CHECK(method IN ('manual', 'kiosk', 'face')),
+    note TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_time_employee ON time_entries(employee_id);
+  CREATE INDEX IF NOT EXISTS idx_time_checkin ON time_entries(check_in);
+
+  CREATE TABLE IF NOT EXISTS departments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    location TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  );
+`);
+
+// Ficha de empleado ampliada (documento, datos personales, departamento).
+try { db.prepare("ALTER TABLE employees ADD COLUMN second_name TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN document_type TEXT NOT NULL DEFAULT 'CI'").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN document_number TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN address TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN birth_date TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL").run() } catch (_) {}
+// Portal del empleado: credenciales propias (separadas de users).
+try { db.prepare("ALTER TABLE employees ADD COLUMN password TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 1").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN portal_last_login TEXT").run() } catch (_) {}
+try { db.prepare("ALTER TABLE employees ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0").run() } catch (_) {}
+// Días de vacaciones anuales por empleado (Cuba: ~30 días).
+try { db.prepare("ALTER TABLE employees ADD COLUMN vacation_days_per_year INTEGER NOT NULL DEFAULT 30").run() } catch (_) {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS leave_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT NOT NULL DEFAULT 'vacaciones' CHECK(type IN ('vacaciones', 'enfermedad', 'personal')),
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    days INTEGER NOT NULL DEFAULT 1,
+    reason TEXT,
+    status TEXT NOT NULL DEFAULT 'pendiente' CHECK(status IN ('pendiente', 'aprobada', 'rechazada')),
+    admin_note TEXT,
+    decided_by TEXT,
+    decided_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_leave_employee ON leave_requests(employee_id);
+
+  CREATE TABLE IF NOT EXISTS tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'abierto' CHECK(status IN ('abierto', 'cerrado')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS ticket_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    author_type TEXT NOT NULL CHECK(author_type IN ('empleado', 'admin')),
+    author_name TEXT,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_ticketmsg_ticket ON ticket_messages(ticket_id);
+
+  -- Notificaciones (para RRHH y para empleados).
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    audience TEXT NOT NULL CHECK(audience IN ('hr', 'employee')),
+    employee_id INTEGER,
+    type TEXT NOT NULL,
+    title TEXT,
+    body TEXT,
+    link TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_notif_audience ON notifications(audience, read);
+  CREATE INDEX IF NOT EXISTS idx_notif_employee ON notifications(employee_id, read);
+
+  -- Solicitudes de corrección de horario (el empleado pide arreglar una marca).
+  CREATE TABLE IF NOT EXISTS time_change_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    entry_id INTEGER,
+    date TEXT NOT NULL,
+    requested_check_in TEXT,
+    requested_check_out TEXT,
+    reason_type TEXT,
+    reason TEXT,
+    status TEXT NOT NULL DEFAULT 'pendiente' CHECK(status IN ('pendiente', 'aprobada', 'rechazada')),
+    admin_note TEXT,
+    decided_by TEXT,
+    decided_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_tcr_employee ON time_change_requests(employee_id);
 `);
 
 // Una sola vez: convertir timestamps UTC existentes a hora local
