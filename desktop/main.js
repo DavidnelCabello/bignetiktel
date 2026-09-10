@@ -10,6 +10,7 @@ const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const path = require('path');
 const { getServerUrl, setServerUrl, CONFIG_PATH } = require('./config');
 const { startLocalServer } = require('./server-proxy');
+const { Outbox } = require('./outbox');
 
 let win = null;
 let settingsWin = null;
@@ -158,7 +159,8 @@ function buildMenu() {
 app.whenReady().then(async () => {
   const distDir = resolveDistDir();
   const cacheDir = path.join(app.getPath('userData'), 'cache');
-  const { port } = await startLocalServer({ distDir, cacheDir });
+  const outbox = new Outbox(path.join(app.getPath('userData'), 'outbox.jsonl'));
+  const { port } = await startLocalServer({ distDir, cacheDir, outbox });
   localPort = port;
 
   buildMenu();
