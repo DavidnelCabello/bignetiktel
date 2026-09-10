@@ -43,6 +43,37 @@ class Outbox {
     return { pending: this.entries.length, failed: this.failed.length, syncing: this.syncing };
   }
 
+  // Detalle legible para el Centro de Sincronización.
+  detail() {
+    return {
+      ...this.status(),
+      pendingItems: this.entries.map((e) => ({ qid: e.qid, ts: e.ts, desc: describe(e) })),
+      failedItems: this.failed.map((e) => ({ qid: e.qid, ts: e.ts, desc: describe(e), reason: e.reason || '', status: e.status || 0 })),
+    };
+  }
+
+  // Reintentar: mover fallidos de vuelta a la cola (uno o todos).
+  retryFailed(qid) {
+    const move = (e) => { delete e.failedAt; delete e.status; delete e.reason; this.entries.push(e); };
+    if (qid) {
+      const i = this.failed.findIndex((e) => e.qid === qid);
+      if (i >= 0) move(this.failed.splice(i, 1)[0]);
+    } else {
+      this.failed.forEach(move);
+      this.failed = [];
+    }
+    this._persist();
+    return this.status();
+  }
+
+  // Descartar fallidos (uno o todos).
+  discardFailed(qid) {
+    if (qid) this.failed = this.failed.filter((e) => e.qid !== qid);
+    else this.failed = [];
+    this._persist();
+    return this.status();
+  }
+
   // ---- Analizar la URL para saber colección / id / subruta ----
   // /api/clients        -> { col:'clients' }
   // /api/clients/5      -> { col:'clients', id:'5' }
@@ -172,6 +203,19 @@ class Outbox {
       this.syncing = false;
     }
   }
+}
+
+// Descripción legible de una operación en cola (para el Centro de Sincronización).
+const COL_NOUN = {
+  clients: 'cliente', sales: 'venta', equipment: 'equipo', models: 'modelo',
+  departments: 'departamento', employees: 'empleado', users: 'usuario',
+};
+function describe(e) {
+  const noun = COL_NOUN[e.col] || e.col || 'registro';
+  if (e.sub) return `${e.sub} en ${noun}${e.targetId ? ' #' + e.targetId : ''}`;
+  const verb = e.op === 'create' ? 'Crear' : e.op === 'delete' ? 'Eliminar' : 'Editar';
+  const name = e.body && (e.body.first_name || e.body.name || e.body.full_name);
+  return `${verb} ${noun}${name ? ' “' + name + '”' : (e.targetId ? ' #' + e.targetId : '')}`;
 }
 
 // Reemplaza un tempId dentro de una cadena (URL).
