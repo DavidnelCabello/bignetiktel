@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sin conexión — BigNetiK Ventas</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #064e3b 100%);
+    color: #e2e8f0;
+  }
+  .card {
+    width: min(480px, 90vw); text-align: center; padding: 40px 34px;
+    background: rgba(15,23,42,0.55); border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 18px; backdrop-filter: blur(6px);
+  }
+  .icon { font-size: 54px; margin-bottom: 8px; }
+  h1 { font-size: 20px; margin: 6px 0 4px; }
+  p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 20px; }
+  .server { font-size: 12px; color: #6ee7b7; word-break: break-all; margin-bottom: 22px; }
+  label { display: block; text-align: left; font-size: 12px; color: #94a3b8; margin: 0 0 6px; }
+  input {
+    width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.25);
+    background: rgba(2,6,23,0.6); color: #f1f5f9; font-size: 14px; margin-bottom: 14px;
+  }
+  input:focus { outline: none; border-color: #10b981; }
+  .row { display: flex; gap: 10px; }
+  button {
+    flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: transform .05s, filter .15s;
+  }
+  button:active { transform: scale(0.98); }
+  .primary { background: #10b981; color: #04231a; }
+  .primary:hover { filter: brightness(1.08); }
+  .ghost { background: rgba(148,163,184,0.14); color: #e2e8f0; }
+  .ghost:hover { background: rgba(148,163,184,0.22); }
+  .saved { font-size: 12px; color: #6ee7b7; height: 16px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>Servidor de BigNetiK</h1>
+    <p>Aquí defines a qué servidor se conecta la app. Puedes usar un dominio (recomendado) o una dirección IP con su puerto.</p>
+    <div class="server" id="current">servidor: …</div>
+
+    <label for="url">Dirección del servidor</label>
+    <input id="url" type="text" placeholder="https://almacen.bignetik.com" autocomplete="off" spellcheck="false" />
+    <div class="row">
+      <button class="primary" id="save">Guardar y conectar</button>
+    </div>
+    <div class="saved" id="msg"></div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  async function init() {
+    try {
+      const url = await window.bignetik.getServerUrl();
+      $('current').textContent = 'servidor: ' + url;
+      $('url').value = url;
+    } catch {}
+  }
+  $('save').addEventListener('click', async () => {
+    const val = $('url').value.trim();
+    if (!val) return;
+    const saved = await window.bignetik.setServerUrl(val);
+    $('msg').textContent = 'Guardado: ' + saved + ' — conectando…';
+    setTimeout(() => window.bignetik.retry(), 500);
+  });
+  $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('save').click(); });
+  init();
+</script>
+</body>
+</html>

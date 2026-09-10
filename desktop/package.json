@@ -1,0 +1,60 @@
+{
+  "name": "bignetik-ventas-desktop",
+  "productName": "BigNetiK Ventas",
+  "version": "1.0.0",
+  "description": "CRM de Ventas y Almacén de BigNetiK Telecom para escritorio (Mac / Windows)",
+  "author": "BigNetiK Telecom",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:all": "electron-builder -mw"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.bignetik.ventas",
+    "productName": "BigNetiK Ventas",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "config.js",
+      "server-proxy.js",
+      "offline.html",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend-dist"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BigNetiK Ventas"
+    }
+  }
+}

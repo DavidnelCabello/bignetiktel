@@ -5,4 +5,5 @@ dist/
 *.db-wal
 .env
 backend/backups/
+desktop/release/
 .DS_Store
